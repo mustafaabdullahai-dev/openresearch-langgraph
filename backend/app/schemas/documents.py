@@ -1,0 +1,10 @@
+"""Pydantic schemas for document upload endpoints."""
+
+from pydantic import BaseModel
+
+
+class DocumentUploadResponse(BaseModel):
+    document_id: str
+    filename: str
+    chunk_count: int
+    message: str
