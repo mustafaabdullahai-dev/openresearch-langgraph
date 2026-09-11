@@ -41,8 +41,15 @@ async def write_report(
     sub_questions: list[str],
     sources: list[dict[str, Any]],
     fact_checks: list[dict[str, Any]],
+    revision_feedback: str | None = None,
+    previous_draft: str | None = None,
 ) -> str:
-    """Generate the draft report grounded strictly in the evidence pack."""
+    """Generate the draft report grounded strictly in the evidence pack.
+
+    When ``revision_feedback`` is provided, the model revises ``previous_draft``
+    to address the reviewer findings. Feedback and draft are input only — they
+    never become part of the returned report.
+    """
     user = (
         f"RESEARCH QUESTION:\n{question}\n\n"
         f"SUB-QUESTIONS:\n{numbered(sub_questions)}\n\n"
@@ -53,6 +60,12 @@ async def write_report(
         "==================\n"
         f"{_fact_check_summary(fact_checks)}"
     )
+    if revision_feedback:
+        user = (
+            f"{user}\n\n--- REVISION REQUEST FROM REVIEWER ---\n"
+            f"REVIEWER FEEDBACK:\n{revision_feedback}\n\n"
+            f"PREVIOUS DRAFT:\n{previous_draft or '(no previous draft)'}"
+        )
     return await provider.generate(
         system=load_prompt("report_writer"),
         user=user,

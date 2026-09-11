@@ -13,8 +13,9 @@ from .schemas import (
     ResearchEvaluation,
     ResearchPlan,
     SourceSummary,
+    SourceSummaryList,
 )
-from .source_analyzer import analyze_source
+from .source_analyzer import analyze_sources_batch
 from .utils import clip, numbered
 
 __all__ = [
@@ -24,8 +25,9 @@ __all__ = [
     "ResearchEvaluation",
     "ResearchPlan",
     "SourceSummary",
+    "SourceSummaryList",
     "analyze_query",
-    "analyze_source",
+    "analyze_sources_batch",
     "answer_follow_up",
     "clip",
     "create_research_plan",

@@ -15,7 +15,7 @@ from typing import Any
 
 from app.agents import (
     analyze_query,
-    analyze_source,
+    analyze_sources_batch,
     create_research_plan,
     evaluate_research,
     fact_check,
@@ -100,11 +100,16 @@ def build_nodes(
         errors: list[str] = []
 
         if queries:
-            tasks = [
-                search_provider.search(query, max_results=max_results)
-                for query in queries
-            ]
-            results_per_query = await asyncio.gather(*tasks, return_exceptions=True)
+            # Space out DuckDuckGo calls: it rate-limits/returns junk when
+            # hammered with concurrent requests from one IP.
+            results_per_query: list[Any] = [None] * len(queries)
+            for index, query in enumerate(queries):
+                try:
+                    results_per_query[index] = await search_provider.search(
+                        query, max_results=max_results
+                    )
+                except BaseException as exc:  # noqa: BLE001 - recorded, not fatal
+                    results_per_query[index] = exc
             for query, batch in zip(queries, results_per_query, strict=False):
                 if isinstance(batch, BaseException):
                     errors.append(f"Search failed for '{query}': {batch}")
@@ -146,33 +151,46 @@ def build_nodes(
         claims: list[dict[str, Any]] = []
         errors: list[str] = []
 
-        for source in pending:
-            url = source["url"]
-            try:
-                fetched = await fetch_source(url, snippet=source.get("snippet", ""))
-                score, tier = score_source(url, fetched.get("title", ""))
-                source.update(fetched)
+        # Fetch + score every pending source concurrently, then run ONE batched
+        # LLM analysis call so N sources cost a single round-trip to the model.
+        if pending:
+            fetched_tasks = [
+                fetch_source(s["url"], snippet=s.get("snippet", "")) for s in pending
+            ]
+            fetched = await asyncio.gather(*fetched_tasks, return_exceptions=True)
+            ready: list[dict[str, Any]] = []
+            for source, result in zip(pending, fetched, strict=False):
+                if isinstance(result, BaseException):
+                    errors.append(f"Could not fetch {source['url']}: {result}")
+                    continue
+                score, tier = score_source(source["url"], result.get("title", ""))
+                source.update(result)
                 source["quality_score"] = score
                 source["quality_tier"] = tier
-                parsed = await analyze_source(provider, state["question"], dict(source))
-                summaries.append(
-                    {
-                        "source_url": parsed.source_url,
-                        "key_facts": parsed.key_facts,
-                        "relevance": parsed.relevance,
-                        "credibility_notes": parsed.credibility_notes,
-                    }
+                ready.append(source)
+
+            if ready:
+                ready = ready[: settings.MAX_SOURCES_ANALYZED]
+                parsed_items = await analyze_sources_batch(
+                    provider, state["question"], ready
                 )
-                claims.extend(
-                    {
-                        "claim_text": fact,
-                        "source_url": url,
-                        "source_title": source.get("title", ""),
-                    }
-                    for fact in parsed.key_facts
-                )
-            except (SourceFetchError, LLMProviderError) as exc:
-                errors.append(f"Could not process {url}: {exc}")
+                for source, parsed in zip(ready, parsed_items, strict=False):
+                    summaries.append(
+                        {
+                            "source_url": parsed.source_url,
+                            "key_facts": parsed.key_facts,
+                            "relevance": parsed.relevance,
+                            "credibility_notes": parsed.credibility_notes,
+                        }
+                    )
+                    claims.extend(
+                        {
+                            "claim_text": fact,
+                            "source_url": source["url"],
+                            "source_title": source.get("title", ""),
+                        }
+                        for fact in parsed.key_facts
+                    )
 
         patch: dict[str, Any] = {
             "analyzed_source_urls": [s["url"] for s in pending],
@@ -271,7 +289,8 @@ def build_nodes(
             dict(s, **summary_by_url.get(s.get("url"), {})) for s in sources
         ]
         feedback = state.get("review_feedback", [])
-        revision_request = feedback[-1] if feedback else None
+        revision_feedback = feedback[-1] if feedback else None
+        previous_draft = state.get("draft_report") if revision_feedback else None
 
         draft = await report_writer_agent.write_report(
             provider,
@@ -279,17 +298,13 @@ def build_nodes(
             state.get("sub_questions", []) or [state["question"]],
             evidence_sources,
             state.get("fact_checks", []),
+            revision_feedback=revision_feedback,
+            previous_draft=previous_draft,
         )
-        if revision_request:
-            draft = (
-                "REVISION REQUEST — address these reviewer findings fully and "
-                f"output the complete revised report:\n{revision_request}\n\n"
-                f"--- PREVIOUS DRAFT ---\n{draft}"
-            )
         return {
             "draft_report": draft,
             "research_notes": [
-                f"Report {'revised' if revision_request else 'drafted'}."
+                f"Report {'revised' if revision_feedback else 'drafted'}."
             ],
         }
 

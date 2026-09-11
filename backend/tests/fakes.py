@@ -18,6 +18,7 @@ from app.agents.schemas import (
     ResearchEvaluation,
     ResearchPlan,
     SourceSummary,
+    SourceSummaryList,
 )
 from app.services.search.base import SearchResult
 from app.services.sources.processor import chunk_text as _chunk_text
@@ -151,6 +152,9 @@ class FakeProvider:
         if schema is SourceSummary:
             self.calls.append("analyze_source")
             return _source_summary()
+        if schema is SourceSummaryList:
+            self.calls.append("analyze_source_batch")
+            return SourceSummaryList(summaries=[_source_summary(), _source_summary()])
         if schema is FactCheckResult:
             self.calls.append("fact_check")
             return _fact_check_result()

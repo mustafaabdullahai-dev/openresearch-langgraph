@@ -8,9 +8,23 @@ output before schema validation.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from .errors import StructuredOutputError
+
+_THINKING_RE = re.compile(r"<thinking>.*?</thinking>", re.DOTALL | re.IGNORECASE)
+
+
+def strip_thinking(text: str) -> str:
+    """Remove Qwen-family chain-of-thought blocks from model output.
+
+    Hosted endpoints (e.g. Groq) often leave ``<thinking>...</thinking>``
+    reasoning tokens inline in ``content``. Strip that internal reasoning so
+    free-form output (like reports) contains only the actual answer.
+    """
+    stripped = _THINKING_RE.sub("", text)
+    return stripped.strip()
 
 
 def strip_code_fences(text: str) -> str:
@@ -32,6 +46,7 @@ def extract_json_object(text: str) -> dict[str, Any]:
     Try a direct parse first, then fall back to slicing between the
     outermost braces so prose around the JSON does not break parsing.
     """
+    text = strip_thinking(text)
     text = strip_code_fences(text)
     try:
         return json.loads(text)

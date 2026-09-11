@@ -1,9 +1,10 @@
 """DuckDuckGo search provider: free, no API key required."""
 
 import asyncio
+from dataclasses import asdict
 from typing import Any
 
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 from .base import SearchResult
 from .errors import SearchError
@@ -11,17 +12,18 @@ from .errors import SearchError
 _SOURCE = "duckduckgo"
 
 
-def _normalize(raw: dict[str, Any]) -> SearchResult:
+def _normalize(row: Any) -> SearchResult:
+    data = row if isinstance(row, dict) else asdict(row)
     return SearchResult(
-        title=raw.get("title") or "",
-        url=raw.get("href") or raw.get("url") or "",
-        snippet=raw.get("body") or "",
+        title=data.get("title") or data.get("name") or "",
+        url=data.get("href") or data.get("url") or "",
+        snippet=data.get("body") or data.get("content") or "",
         source=_SOURCE,
     )
 
 
 class DuckDuckGoSearchProvider:
-    """Free-first search provider backed by DuckDuckGo."""
+    """Free-first search provider backed by DuckDuckGo (``ddgs``)."""
 
     async def search(self, query: str, max_results: int = 5) -> list[SearchResult]:
         """Search DuckDuckGo, running the sync SDK off the event loop."""

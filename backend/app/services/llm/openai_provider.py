@@ -18,7 +18,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.config.settings import settings
 
-from ._parsing import extract_json_object
+from ._parsing import extract_json_object, strip_thinking
 from .errors import (
     LLMGenerationError,
     LLMProviderError,
@@ -35,6 +35,7 @@ _JSON_INSTRUCTION = (
 )
 
 _MAX_429_RETRIES = 4
+_429_WAIT_CAP = 45.0
 
 
 class OpenAICompatLLMProvider:
@@ -54,6 +55,7 @@ class OpenAICompatLLMProvider:
         self.base_url = (base_url or settings.OPENAI_BASE_URL).rstrip("/")
         self.max_tokens = max_tokens or settings.OPENAI_MAX_TOKENS
         self.temperature = temperature
+        self._supports_reasoning_effort = "qwen" in self.model.lower()
         self._client = httpx.AsyncClient(timeout=180)
         self._headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -61,17 +63,21 @@ class OpenAICompatLLMProvider:
         }
 
     def _retry_wait_from(self, response: httpx.Response) -> float:
-        """Seconds to wait before retrying a rate-limited request."""
+        """Seconds to wait before retrying a rate-limited request.
+
+        Prefer the server-suggested wait but cap it so a cold window does not
+        stall a run for minutes; the window refills on a rolling basis.
+        """
         header = response.headers.get("retry-after")
         if header:
             try:
-                return max(0.0, float(header))
+                return min(_429_WAIT_CAP, max(0.0, float(header)))
             except ValueError:
                 pass
         match = re.search(r"in (\d+(?:\.\d+)?)s", response.text)
         if match:
-            return max(0.0, float(match.group(1)))
-        return 10.0
+            return min(_429_WAIT_CAP, max(0.0, float(match.group(1))))
+        return 15.0
 
     async def _post_chat(self, payload: dict[str, Any]) -> httpx.Response:
         url = f"{self.base_url}/chat/completions"
@@ -107,6 +113,11 @@ class OpenAICompatLLMProvider:
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
         }
+        if self._supports_reasoning_effort:
+            # Suppress chain-of-thought reasoning tokens (Qwen3/GPT-OSS on
+            # Groq) so answers come back as clean text instead of a
+            # "Here's a thinking process..." preamble.
+            payload["reasoning_effort"] = "none"
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
         response = await self._post_chat(payload)
@@ -124,7 +135,7 @@ class OpenAICompatLLMProvider:
             raise LLMGenerationError(
                 f"Unexpected response shape from {self.base_url} for {self.model}."
             ) from exc
-        return str(content).strip()
+        return strip_thinking(str(content).strip())
 
     async def generate_structured(
         self,

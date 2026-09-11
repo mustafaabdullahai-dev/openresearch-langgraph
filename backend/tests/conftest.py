@@ -21,6 +21,10 @@ os.environ["VECTOR_DB_PATH"] = f"{_TEST_DATA}/chroma"
 os.environ["SEARCH_PROVIDER"] = "duckduckgo"
 os.environ["LLM_PROVIDER"] = "openai"
 os.environ["OPENAI_API_KEY"] = ""
+# Fixed research-loop budget so tests stay deterministic no matter what
+# settings/.env defaults are in play (runtime default favors speed: 1/1).
+os.environ["MAX_RESEARCH_ITERATIONS"] = "3"
+os.environ["MAX_REPORT_REVISIONS"] = "2"
 
 from app.graph.state import initial_state  # noqa: E402
 from app.graph.workflow import build_research_graph  # noqa: E402

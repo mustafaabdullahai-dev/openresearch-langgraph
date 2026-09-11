@@ -43,6 +43,34 @@ async def test_openai_generate_returns_text() -> None:
     assert result == "hello groq"
 
 
+async def test_openai_generate_strips_thinking_blocks() -> None:
+    provider = OpenAICompatLLMProvider(api_key="dummy")
+    raw = (
+        "\n<thinking>\nHere's a thinking process for the task:\n"
+        "1. Consider the question\n2. Draft plan\n</thinking>\n\n"
+        "The answer to the question is yes."
+    )
+    await _chat_response(provider, raw)
+    result = await provider.generate(system="sys", user="usr")
+    assert "<thinking>" not in result
+    assert "The answer to the question is yes." in result
+
+
+async def test_openai_generate_structured_strips_thinking_before_parse() -> None:
+    provider = OpenAICompatLLMProvider(api_key="dummy")
+    raw = "<thinking>reasoning here</thinking>\n" + json.dumps(
+        {"text": "ok", "count": 2}
+    )
+    await _chat_response(provider, raw)
+    result = await provider.generate_structured(
+        schema=_FakeAnswer,
+        system="sys",
+        user="usr",
+    )
+    assert result.text == "ok"
+    assert result.count == 2
+
+
 async def test_openai_generate_requires_key() -> None:
     provider = OpenAICompatLLMProvider(api_key="")
     with pytest.raises(LLMUnavailableError):

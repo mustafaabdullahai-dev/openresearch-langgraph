@@ -66,8 +66,7 @@ def test_graph_agent_call_order(monkeypatch):
     assert provider.calls == [
         "analyze_query",
         "create_research_plan",
-        "analyze_source",
-        "analyze_source",
+        "analyze_source_batch",
         "fact_check",
         "evaluate_research",
         "generate",  # report_writer

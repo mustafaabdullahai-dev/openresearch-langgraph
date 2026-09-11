@@ -16,7 +16,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.config.settings import settings
 
-from ._parsing import extract_json_object
+from ._parsing import extract_json_object, strip_thinking
 from .errors import (
     LLMGenerationError,
     LLMProviderError,
@@ -80,7 +80,7 @@ class HFLLMProvider:
             raise LLMGenerationError(
                 f"Unexpected response shape from Hugging Face for {self.model}."
             ) from exc
-        return str(content).strip()
+        return strip_thinking(str(content).strip())
 
     async def generate_structured(
         self,

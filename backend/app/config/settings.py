@@ -25,9 +25,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "qwen/qwen3.6-27b"
     OPENAI_BASE_URL: str = "https://api.groq.com/openai/v1"
-    # Cap per-call output so it fits the free-tier rate window (Groq on_demand
-    # default is 1000 output tokens/min). Raise for paid tiers + longer reports.
-    OPENAI_MAX_TOKENS: int = 900
+    # Per-call output cap; keeps requests within the free-tier rate window
+    # (Groq on_demand default is 1000 output tokens/min). Raise for paid tiers.
+    OPENAI_MAX_TOKENS: int = 700
 
     # --- Hugging Face hosted inference (alternative backend) ---
     HF_TOKEN: str = ""
@@ -41,9 +41,12 @@ class Settings(BaseSettings):
     VECTOR_DB_PATH: str = "./data/chroma"
 
     # --- Research loop ---
-    MAX_RESEARCH_ITERATIONS: int = 3
+    MAX_RESEARCH_ITERATIONS: int = 1
     MAX_SEARCH_RESULTS: int = 5
-    MAX_REPORT_REVISIONS: int = 2
+    MAX_REPORT_REVISIONS: int = 1
+    # Sources analyzed per iteration in a single batched LLM call; the cap keeps
+    # the combined request inside the free-tier input-token window (~7000/min).
+    MAX_SOURCES_ANALYZED: int = 8
 
     # --- Search provider ---
     SEARCH_PROVIDER: str = "duckduckgo"  # "duckduckgo" | "tavily"

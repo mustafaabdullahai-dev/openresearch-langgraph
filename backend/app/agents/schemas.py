@@ -34,6 +34,12 @@ class SourceSummary(BaseModel):
     credibility_notes: str = ""
 
 
+class SourceSummaryList(BaseModel):
+    """Batch output: one summary per source, returned in input order."""
+
+    summaries: list[SourceSummary]
+
+
 ClaimStatus = Literal[
     "supported", "partially_supported", "contradicted", "unsupported", "uncertain"
 ]
