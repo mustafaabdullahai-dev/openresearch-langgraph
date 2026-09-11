@@ -4,8 +4,8 @@ Environment variables are set *before* any ``app.*`` module is imported,
 because settings are read once at import time.  They redirect the database
 and vector store into a temporary directory so tests never touch real data.
 The default search provider is DuckDuckGo and the LLM provider is fixed to
-Hugging Face so that any code that unexpectedly reaches for a live model
-fails fast (empty token) instead of hanging.
+an OpenAI-compatible endpoint with an empty key so that any code that
+unexpectedly reaches for a live model fails fast instead of hanging.
 """
 
 from __future__ import annotations
@@ -19,8 +19,8 @@ _TEST_DATA = tempfile.mkdtemp(prefix="openresearch-test-")
 os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DATA}/test.db"
 os.environ["VECTOR_DB_PATH"] = f"{_TEST_DATA}/chroma"
 os.environ["SEARCH_PROVIDER"] = "duckduckgo"
-os.environ["LLM_PROVIDER"] = "hf"
-os.environ["HF_TOKEN"] = ""
+os.environ["LLM_PROVIDER"] = "openai"
+os.environ["OPENAI_API_KEY"] = ""
 
 from app.graph.state import initial_state  # noqa: E402
 from app.graph.workflow import build_research_graph  # noqa: E402

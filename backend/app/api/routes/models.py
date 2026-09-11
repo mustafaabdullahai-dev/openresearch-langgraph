@@ -19,14 +19,14 @@ async def model_status(
         await provider.check_connection()
     except LLMUnavailableError as exc:
         return ModelStatusResponse(
-            provider="hf",
-            model=settings.HF_MODEL,
+            provider="openai",
+            model=settings.OPENAI_MODEL,
             connected=False,
             message=str(exc),
         )
     return ModelStatusResponse(
-        provider="hf",
-        model=settings.HF_MODEL,
+        provider="openai",
+        model=settings.OPENAI_MODEL,
         connected=True,
         message="Model endpoint is reachable.",
     )

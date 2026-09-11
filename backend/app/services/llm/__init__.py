@@ -7,6 +7,7 @@ from .errors import (
     StructuredOutputError,
 )
 from .hf_provider import HFLLMProvider
+from .openai_provider import OpenAICompatLLMProvider
 from .provider import LLMProvider, create_provider
 
 __all__ = [
@@ -15,6 +16,7 @@ __all__ = [
     "LLMProvider",
     "LLMProviderError",
     "LLMUnavailableError",
+    "OpenAICompatLLMProvider",
     "StructuredOutputError",
     "create_provider",
 ]

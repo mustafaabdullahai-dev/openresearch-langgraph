@@ -18,10 +18,18 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     # --- LLM backend ---
-    # "hf" (Hugging Face hosted inference, default).
-    LLM_PROVIDER: str = "hf"
+    # "openai" (OpenAI-compatible endpoint, default) | "hf" (Hugging Face inference)
+    LLM_PROVIDER: str = "openai"
 
-    # --- Hugging Face hosted inference ---
+    # --- OpenAI-compatible endpoint (defaults to Groq) ---
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "qwen/qwen3.6-27b"
+    OPENAI_BASE_URL: str = "https://api.groq.com/openai/v1"
+    # Cap per-call output so it fits the free-tier rate window (Groq on_demand
+    # default is 1000 output tokens/min). Raise for paid tiers + longer reports.
+    OPENAI_MAX_TOKENS: int = 900
+
+    # --- Hugging Face hosted inference (alternative backend) ---
     HF_TOKEN: str = ""
     HF_MODEL: str = "Qwen/Qwen2.5-7B-Instruct"
     HF_BASE_URL: str = ""  # optional: your own inference endpoint
