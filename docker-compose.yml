@@ -1,9 +1,8 @@
 # OpenResearch — containerized deployment.
 #
-# By default Ollama runs on the host (`http://localhost:11434`). To run it in
-# a container instead, start with:
-#   docker compose --profile ollama up --build
-# and set OLLAMA_BASE_URL=http://ollama:11434 in your .env.
+# The LLM backend is Hugging Face hosted inference. Set LLM_PROVIDER=hf and
+# HF_TOKEN in your .env; optionally point HF_BASE_URL at your own vLLM/TGI
+# endpoint (self-hosted from Hugging Face weights).
 
 services:
   backend:
@@ -33,17 +32,3 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-
-  # Optional: local LLM runtime. Pull the model once:
-  #   docker compose --profile ollama run ollama ollama pull qwen3:8b
-  ollama:
-    image: ollama/ollama:latest
-    profiles: ["ollama"]
-    volumes:
-      - ollama-data:/root/.ollama
-    ports:
-      - "11434:11434"
-    restart: unless-stopped
-
-volumes:
-  ollama-data:

@@ -1,10 +1,10 @@
 """ChromaDB-backed vector store with a deterministic local embedding fallback.
 
-Embeddings are generated via the same Ollama embedding model configured
-in settings when available.  When the embedding model is unavailable (e.g.
-in CI or on a machine without Ollama), a hash-based embedding function
-provides stable, zero-dependency vector storage so the rest of the system
-stays functional for non-semantic retrieval.
+Embeddings are generated via Hugging Face hosted inference when a token is
+configured.  When the inference backend is unavailable (e.g. in CI without a
+token), a hash-based embedding function provides stable, zero-dependency
+vector storage so the rest of the system stays functional for non-semantic
+retrieval.
 """
 
 from __future__ import annotations
@@ -17,6 +17,13 @@ import chromadb
 from app.config.settings import settings
 
 from .base import RetrievedChunk
+
+try:  # optional dependency guard
+    from huggingface_hub import AsyncInferenceClient
+
+    _HFClient: Any = AsyncInferenceClient
+except Exception:  # noqa: BLE001
+    _HFClient = None
 
 
 class _LocalEmbeddingFunction:
@@ -77,26 +84,36 @@ class ChromaVectorStore:
             embedding_function=cast(Any, self._hash_fn),
         )
 
-        # Ollama embeddings are tried last; when available they override the
-        # local hash embeddings at query-time (passing ``query_embeddings``).
-        self._ollama = None
+        # HF inference embeddings are tried first; when available they
+        # override the local hash embeddings at add/query time (passing
+        # explicit ``embeddings`` / ``query_embeddings``).
+        self._external_embeds: list[Any] = []
         try:
-            from langchain_ollama import OllamaEmbeddings
-
-            self._ollama = OllamaEmbeddings(
-                model=settings.OLLAMA_EMBEDDING_MODEL,
-                base_url=settings.OLLAMA_BASE_URL,
-            )
+            if _HFClient is not None:
+                self._external_embeds.append(_HFClient(token=settings.HF_TOKEN or None))
         except Exception:
-            self._ollama = None
+            pass
 
-    async def _ollama_embed(self, texts: list[str]) -> list[list[float]] | None:
-        if not self._ollama:
-            return None
-        try:
-            return await self._ollama.aembed_documents(texts)
-        except Exception:
-            return None
+    async def _external_embed(
+        self, texts: list[str], *, batch_size: int = 4
+    ) -> list[list[float]] | None:
+        """Embed via the HF inference server; hash fallback otherwise."""
+        for engine in self._external_embeds:
+            try:
+                if not settings.HF_TOKEN:
+                    continue
+                vectors: list[list[float]] = []
+                for i in range(0, len(texts), batch_size):
+                    batch = texts[i : i + batch_size]
+                    result = await engine.feature_extraction(batch)
+                    for vec in result:
+                        if isinstance(vec, (list, tuple)):
+                            vectors.append([float(v) for v in vec])
+                if len(vectors) == len(texts):
+                    return vectors
+            except Exception:
+                continue
+        return None
 
     async def add_documents(
         self,
@@ -105,7 +122,7 @@ class ChromaVectorStore:
         documents: list[str],
         metadatas: list[dict[str, Any]],
     ) -> None:
-        embeddings = await self._ollama_embed(documents)
+        embeddings = await self._external_embed(documents)
         kwargs: dict[str, Any] = {
             "documents": documents,
             "metadatas": metadatas,
@@ -116,7 +133,7 @@ class ChromaVectorStore:
         await asyncio.to_thread(self._collection.add, **kwargs)
 
     async def similarity_search(self, query: str, k: int = 5) -> list[RetrievedChunk]:
-        embeddings = await self._ollama_embed([query])
+        embeddings = await self._external_embed([query])
         kwargs: dict[str, Any] = {"query_texts": [query], "n_results": k}
         if embeddings is not None:
             kwargs = {"query_embeddings": [embeddings[0]], "n_results": k}

@@ -17,10 +17,14 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed browser origins (no wildcard with cookies).
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
-    # --- Ollama (local, open-source LLM) ---
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "qwen3:8b"
-    OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
+    # --- LLM backend ---
+    # "hf" (Hugging Face hosted inference, default).
+    LLM_PROVIDER: str = "hf"
+
+    # --- Hugging Face hosted inference ---
+    HF_TOKEN: str = ""
+    HF_MODEL: str = "Qwen/Qwen2.5-7B-Instruct"
+    HF_BASE_URL: str = ""  # optional: your own inference endpoint
 
     # --- Database ---
     DATABASE_URL: str = "sqlite:///./data/openresearch.db"

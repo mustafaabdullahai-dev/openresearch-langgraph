@@ -6,15 +6,15 @@ from .errors import (
     LLMUnavailableError,
     StructuredOutputError,
 )
-from .ollama_provider import OllamaLLMProvider
+from .hf_provider import HFLLMProvider
 from .provider import LLMProvider, create_provider
 
 __all__ = [
+    "HFLLMProvider",
     "LLMGenerationError",
     "LLMProvider",
     "LLMProviderError",
     "LLMUnavailableError",
-    "OllamaLLMProvider",
     "StructuredOutputError",
     "create_provider",
 ]

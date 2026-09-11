@@ -1,16 +1,14 @@
 """Model provider abstraction.
 
-High-level contract for any LLM backend — a local Ollama server today,
-potentially a remote provider later. Agents and graph nodes depend only
-on this protocol rather than a concrete implementation, so the runtime
-model can be swapped without touching agent or graph code.
+High-level contract for the LLM backend — Hugging Face hosted inference by
+default. Agents and graph nodes depend only on this protocol rather than a
+concrete implementation, so the runtime model can be swapped without touching
+agent or graph code.
 """
 
 from typing import Protocol, TypeVar
 
 from pydantic import BaseModel
-
-from .ollama_provider import OllamaLLMProvider
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -35,5 +33,15 @@ class LLMProvider(Protocol):
 
 
 def create_provider() -> LLMProvider:
-    """Return the provider configured for the current environment."""
-    return OllamaLLMProvider()
+    """Return the provider configured for the current environment.
+
+    ``settings.LLM_PROVIDER`` selects the backend; only ``"hf"`` (Hugging Face
+    hosted inference) is bundled today.
+    """
+    from app.config.settings import settings
+
+    from .hf_provider import HFLLMProvider
+
+    if settings.LLM_PROVIDER == "hf":
+        return HFLLMProvider()
+    return HFLLMProvider()

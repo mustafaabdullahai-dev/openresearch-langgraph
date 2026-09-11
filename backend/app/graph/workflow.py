@@ -65,7 +65,7 @@ def build_research_graph(
     """Compile the research workflow.
 
     Args:
-        provider: the configured LLM provider (Ollama by default).
+        provider: the configured LLM provider.
         search_provider: optional pre-built search provider; built from
             settings when omitted.
         checkpointer: optional LangGraph checkpointer for persistence.

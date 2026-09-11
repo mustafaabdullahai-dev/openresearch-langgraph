@@ -6,10 +6,10 @@ from typing import Any
 
 from langgraph.checkpoint.memory import InMemorySaver
 
-from app.services.llm import OllamaLLMProvider
+from app.services.llm import create_provider
 
 _checkpointer = InMemorySaver()
-_provider = OllamaLLMProvider()
+_provider = create_provider()
 
 _graph = None
 

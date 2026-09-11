@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.agents.chat import answer_follow_up
 from app.schemas.chat import ChatRequest, ChatResponse
-from app.services.llm import LLMUnavailableError, OllamaLLMProvider
+from app.services.llm import LLMUnavailableError, create_provider
 from app.services.sessions import repository as sessions
 
 router = APIRouter(tags=["chat"])
@@ -27,7 +27,7 @@ async def chat_follow_up(thread_id: str, req: ChatRequest) -> ChatResponse:
     except Exception:
         values = {}
 
-    provider = OllamaLLMProvider()
+    provider = create_provider()
     try:
         response = await answer_follow_up(
             provider,
@@ -39,6 +39,6 @@ async def chat_follow_up(thread_id: str, req: ChatRequest) -> ChatResponse:
     except LLMUnavailableError as exc:
         raise HTTPException(
             status_code=503,
-            detail="The local model is not reachable. Start Ollama and retry.",
+            detail="The model backend is not reachable. Check HF_TOKEN and retry.",
         ) from exc
     return ChatResponse(thread_id=thread_id, message=req.message, response=response)

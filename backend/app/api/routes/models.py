@@ -14,19 +14,19 @@ router = APIRouter(tags=["models"])
 async def model_status(
     provider: LLMProvider = Depends(get_llm_provider),
 ) -> ModelStatusResponse:
-    """Report whether the configured local model endpoint is reachable."""
+    """Report whether the configured model endpoint is reachable."""
     try:
         await provider.check_connection()
     except LLMUnavailableError as exc:
         return ModelStatusResponse(
-            provider="ollama",
-            model=settings.OLLAMA_MODEL,
+            provider="hf",
+            model=settings.HF_MODEL,
             connected=False,
             message=str(exc),
         )
     return ModelStatusResponse(
-        provider="ollama",
-        model=settings.OLLAMA_MODEL,
+        provider="hf",
+        model=settings.HF_MODEL,
         connected=True,
         message="Model endpoint is reachable.",
     )

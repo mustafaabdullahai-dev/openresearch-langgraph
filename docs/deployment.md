@@ -2,19 +2,18 @@
 
 ## Local development (no Docker)
 
-Requirements: Python 3.11+, Node.js 20+, Ollama.
+Requirements: Python 3.11+, Node.js 20+, a Hugging Face account with an
+inference provider enabled (free tier available via Groq / SambaNova).
 
 ```bash
-# 1. Models
-ollama pull qwen3:8b
-ollama pull nomic-embed-text
-ollama serve
-
-# 2. Backend
+# 1. Backend
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload          # http://localhost:8000/docs
+
+# 2. Set your HF token in .env (see .env.example)
+#    You must also enable an inference provider at:
+#    https://huggingface.co/settings/inference-providers
 
 # 3. Frontend
 cd frontend
@@ -27,14 +26,8 @@ Open http://localhost:5173. The Vite dev server proxies `/api` to the backend.
 ## Docker Compose
 
 ```bash
-cp .env.example .env
-
-# Ollama on the host (default)
+cp .env.example .env   # fill in HF_TOKEN and select HF model
 docker compose up --build
-
-# Ollama in a container
-docker compose --profile ollama up --build
-# then set OLLAMA_BASE_URL=http://ollama:11434 in .env and restart
 ```
 
 - Frontend: http://localhost:5173 (nginx serves the build and proxies `/api` to

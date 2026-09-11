@@ -6,7 +6,7 @@ class LLMProviderError(Exception):
 
 
 class LLMUnavailableError(LLMProviderError):
-    """The model backend cannot be reached (e.g. Ollama is not running)."""
+    """The model backend cannot be reached (missing token or API down)."""
 
 
 class LLMGenerationError(LLMProviderError):

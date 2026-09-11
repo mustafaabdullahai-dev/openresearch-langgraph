@@ -2,8 +2,8 @@
 
 The research graph is swapped in via monkeypatch so no live model is ever
 contacted, except for the dedicated degraded-mode tests that assert the
-system fails gracefully when Ollama is unreachable (the default OLLAMA_BASE_URL
-in the test environment is a closed port).
+system fails gracefully when the HF inference backend is unreachable
+(empty HF_TOKEN in the test environment).
 """
 
 from __future__ import annotations
@@ -48,13 +48,13 @@ def test_health(client) -> None:
     assert response.json() == {"status": "ok"}
 
 
-def test_model_status_reports_unavailable_when_ollama_down(client) -> None:
-    # Test env OLLAMA_BASE_URL points at a closed port.
+def test_model_status_reports_unavailable_when_hf_token_missing(client) -> None:
+    # Test env has an empty HF_TOKEN, so the HF provider raises on connect.
     response = client.get("/api/models/status")
     assert response.status_code == 200
     body = response.json()
     assert body["connected"] is False
-    assert "ollama" in body["message"].lower() or "model" in body["message"].lower()
+    assert body["provider"] == "hf"
 
 
 def _wait_for_status(client: TestClient, thread_id: str, statuses: set[str]) -> str:

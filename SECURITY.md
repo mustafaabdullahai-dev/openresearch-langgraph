@@ -53,7 +53,7 @@ the notes below and add your own authentication/rate limiting in front of it.
 
 ## Local model trust
 
-The LLM runs locally via Ollama. Prompts and fetched web content are passed to
-the model — treat the model's output as unverified. Reports always surface
+The LLM runs via Hugging Face hosted inference. Prompts and fetched web content are
+passed to the model — treat the model's output as unverified. Reports always surface
 their sources so claims can be checked. Web content is treated as untrusted
 data (not as instructions).

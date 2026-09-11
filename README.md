@@ -1,11 +1,11 @@
 # OpenResearch
 
-**An open-source multi-agent AI research assistant built with LangGraph and local LLMs.**
+**An open-source multi-agent AI research assistant built with LangGraph and Hugging Face models.**
 
 OpenResearch takes a research question, plans the investigation, searches the web,
 collects and analyzes sources, fact-checks claims, iterates on gaps, and produces a
 structured, cited report — orchestrated entirely by a LangGraph state machine running
-on an open-weight model (Ollama + Qwen3). No OpenAI or Anthropic keys required.
+on Hugging Face hosted inference. No local GPU required; run on any VPS with an HF token.
 
 ---
 
@@ -17,8 +17,9 @@ on an open-weight model (Ollama + Qwen3). No OpenAI or Anthropic keys required.
   until a satisfactory answer is reached (bounded by `MAX_RESEARCH_ITERATIONS`).
 - **LangGraph orchestration** — typed state, conditional edges, checkpointing, and
   error recovery.
-- **Free-first by design** — local LLMs via Ollama, DuckDuckGo search by default, and
-  optional pluggable providers (e.g. Tavily) that never gate core functionality.
+- **Free-first by design** — Hugging Face hosted inference (no local GPU), DuckDuckGo
+  search by default, and optional pluggable providers (e.g. Tavily) that never gate
+  core functionality.
 - **Citation-first reporting** — every factual claim maps back to a collected source.
 - **RAG-ready** — document upload, chunking, embeddings, and vector search (ChromaDB).
 - **FastAPI backend** — typed schemas, streaming progress, health endpoint, SQLite
@@ -44,8 +45,8 @@ flowchart TD
     RP --> SP
     SP --> SR[Source Processor]
     SR --> Chroma[(ChromaDB)]
-    LG --> O[Ollama]
-    O --> M[Qwen3 / configurable model]
+    LG --> HF[Hugging Face Inference]
+    HF --> M[Qwen2.5 / configurable model]
 ```
 
 ## Tech Stack
@@ -54,7 +55,7 @@ flowchart TD
 | ---------- | ------------------------------------------------------- |
 | Orchestration | LangGraph, LangChain                                |
 | Backend    | Python, FastAPI, SQLAlchemy, SQLite                      |
-| LLM        | Ollama + Qwen3 (open weights, local)                     |
+| LLM        | Hugging Face hosted inference (no local GPU required)     |
 | Search     | DuckDuckGo (default), Tavily (optional)                  |
 | Storage    | SQLite, ChromaDB                                         |
 | Frontend   | React, TypeScript, Tailwind CSS, Vite                    |
@@ -62,15 +63,11 @@ flowchart TD
 
 ## Quick Start
 
-Requirements: **Python 3.11+**, **Node.js 20+**, **Docker** (optional), **Git**, **Ollama**.
+Requirements: **Python 3.11+**, **Node.js 20+**, **Docker** (optional), **Git**, a [Hugging Face](https://huggingface.co) account with an inference provider enabled.
 
 ```bash
 git clone <repository-url>
 cd openresearch-langgraph
-
-# 1. Install the local model
-ollama pull qwen3:8b
-ollama serve
 ```
 
 ### Backend
@@ -96,9 +93,8 @@ Copy `.env.example` to `.env` and adjust values as needed.
 ### Docker Compose
 
 ```bash
-cp .env.example .env
+cp .env.example .env          # fill in HF_TOKEN
 docker compose up --build          # frontend:5173, backend:8000
-# optional containerized LLM: docker compose --profile ollama up --build
 ```
 
 See [`docs/deployment.md`](docs/deployment.md) for details.
@@ -108,7 +104,7 @@ See [`docs/deployment.md`](docs/deployment.md) for details.
 All 23 phases complete. See [`docs/development.md`](docs/development.md).
 
 - [x] Phase 1 — Project initialization (repo, backend & frontend skeletons, config)
-- [x] Phase 2 — Ollama + model provider integration
+- [x] Phase 2 — LLM provider integration (Hugging Face hosted)
 - [x] Phases 3–17 — LangGraph workflow, agents, API, frontend, RAG
 - [x] Phases 18–23 — Tests, Docker, CI/CD, documentation, deployment
 

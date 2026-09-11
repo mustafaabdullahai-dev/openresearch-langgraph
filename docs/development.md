@@ -5,7 +5,7 @@
 | Phase | Status |
 | ----- | ------ |
 | 1 · Project initialization | ✅ Done |
-| 2 · Ollama + model provider | ✅ Done |
+| 2 · LLM provider integration | ✅ Done |
 | 3 · LangGraph state + base graph | ✅ Done |
 | 4 · Query Analyzer | ✅ Done |
 | 5 · Research Planner | ✅ Done |
@@ -58,8 +58,8 @@ touch real data:
 
 - `DATABASE_URL` → a temp SQLite file
 - `VECTOR_DB_PATH` → a temp chroma directory
-- `OLLAMA_BASE_URL` → a closed port (`127.0.0.1:1`) so accidental live calls
-  fail fast instead of hanging
+- `LLM_PROVIDER` → `hf` (Hugging Face hosted inference)
+- `HF_TOKEN` → empty string so any accidental live call fails fast
 
 The graph tests run fully offline against fakes (`tests/fakes.py`). No test
 requires a network connection or a running model.
